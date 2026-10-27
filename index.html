@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rebird — assistentes de I.A. para o WhatsApp de empresas e profissionais</title>
+<meta name="description" content="Rebird — desenvolvimento de assistentes de IA conversacional para o WhatsApp de empresas e profissionais, sobre a API oficial da Meta, com supervisão humana e papéis da LGPD definidos em contrato.">
+<meta name="theme-color" content="#11110F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%2311110F'/%3E%3Cpolygon points='23,7 33,7 22,31 18,22' fill='%237955B5'/%3E%3Cpolygon points='6,7 16,7 25,30 20,35' fill='%239E6EF9'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: oficina escura, uma coluna larga de texto à esquerda, a gota de metal verde-limão vive à direita e muda de forma a cada argumento. */
+:root{
+  color-scheme:dark;
+  --bg:#11110F; --surface:#181816; --surface-2:#1F1F1B;
+  --ink:#EEEDF4; --ink-2:#C1BFCB; --muted:#A3A698;
+  --lime:#6E3DB8; --lime-ink:#9B74E8; --lime-dim:#4A2680; --dot:#8F6BE0; --on-lime:#F7F3FF;
+  --paper:#E3DFED; --paper-2:#CCC7DD; --paper-ink:#1B1620; --paper-muted:#4F4659;
+  --line:rgba(238,237,244,.14); --line-strong:rgba(238,237,244,.3);
+  --display:'Manrope',ui-sans-serif,system-ui,'Segoe UI',Roboto,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --radius:18px; --max:1240px; --gutter:clamp(20px,5vw,80px);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:100px}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.7 var(--display);-webkit-font-smoothing:antialiased;overflow-x:clip}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse at 82% 12%,rgba(116,48,246,.07),transparent 50%),
+             linear-gradient(90deg,transparent 49.95%,rgba(238,237,244,.025) 50%,transparent 50.05%)}
+::selection{background:var(--lime);color:var(--on-lime)}
+a{color:inherit;text-decoration:none}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0}
+:focus-visible{outline:3px solid var(--lime);outline-offset:5px;border-radius:4px}
+h1,h2,h3{text-wrap:balance;letter-spacing:-.04em;line-height:1.02;font-weight:200}
+h1 strong,h2 strong,h3 strong{font-weight:800}
+p{text-wrap:pretty}
+svg{display:block}
+[hidden]{display:none!important}
+.wrap{width:min(var(--max),calc(100% - var(--gutter)*2));margin-inline:auto}
+.section{position:relative;padding-block:clamp(76px,10vw,124px)}
+main,footer,.ticker{position:relative;z-index:1}
+.overline,.mono{font-family:var(--mono);font-size:11.5px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.overline{display:block;margin-bottom:28px}
+.overline::before{content:"( ";color:var(--lime-ink)}
+.overline::after{content:" )";color:var(--lime-ink)}
+.accent{color:var(--lime-ink)}
+.section-title{font-size:clamp(36px,5.2vw,70px);max-width:16ch}
+.lead{color:var(--ink-2);font-size:clamp(16px,1.3vw,19px);line-height:1.65;max-width:56ch;margin-top:22px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:16px;min-height:52px;padding:14px 22px;border-radius:8px;border:1px solid transparent;font-size:14px;font-weight:700;transition:transform .2s,background .2s,border-color .2s,color .2s}
+.btn:hover{transform:translateY(-2px)}
+.btn-primary{background:var(--lime);color:var(--on-lime)}
+.btn-primary:hover{background:#C1A5FD}
+.btn-ghost{border-color:var(--line-strong);color:var(--ink);font-weight:500}
+.btn-ghost:hover{border-color:var(--lime-ink);color:var(--lime-ink)}
+.btn .arrow{font-weight:400;font-size:18px}
+.actions{display:flex;gap:12px;flex-wrap:wrap}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:fixed;top:-100px;left:20px;z-index:100;background:var(--lime);color:var(--on-lime);padding:14px 16px;border-radius:6px;font-weight:700}
+.skip:focus{top:calc(16px + env(safe-area-inset-top,0px))}
+
+/* ===== Objeto assinatura: a gota ===== */
+.orb-stage{position:fixed;left:80%;top:46%;width:min(52vw,680px);aspect-ratio:1;max-width:100%;transform:translate(-50%,-50%);pointer-events:none;z-index:0;will-change:transform,opacity;contain:layout style}
+.orb-stage canvas{display:block;width:100%;height:100%}
+.orb-stage.fallback canvas{display:none}
+.orb-stage.fallback::before{content:"";position:absolute;inset:20%;border-radius:50%;
+  background:radial-gradient(circle at 30% 26%,#E2D7FE 0%,transparent 20%),radial-gradient(circle at 38% 36%,#7430F6,#53347D 45%,#191122 75%,#11110F 90%);
+  box-shadow:inset -24px -28px 48px #000a,0 0 110px rgba(116,48,246,.14)}
+.orb-label{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:30;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 32px);padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:rgba(17,17,15,.84);backdrop-filter:blur(10px);font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.orb-label i{font-style:normal;color:var(--lime-ink)}
+.orb-label button{padding:2px 0 2px 10px;border-left:1px solid var(--line);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+.orb-label button:hover{color:var(--lime-ink)}
+
+/* ===== Navegação ===== */
+.header{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;background:rgba(17,17,15,.86);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.header-inner{height:80px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.brand{display:inline-flex;align-items:center;gap:12px;font-size:26px;font-weight:300;letter-spacing:.06em}
+.brand svg{display:none}
+.brand .dotmark{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--dot);margin-left:2px;transform:translateY(5px)}
+.nav{display:flex;align-items:center;gap:26px}
+.nav a:not(.btn){color:var(--muted);font-size:13px;font-weight:500}
+.nav a:not(.btn):hover{color:var(--ink)}
+.nav .btn{min-height:42px;padding:9px 16px;font-size:13px}
+.menu-toggle{display:none;border:1px solid var(--line);border-radius:6px;padding:10px 14px;font-size:13px}
+
+/* ===== Hero ===== */
+.hero{padding-top:clamp(64px,9vh,112px);padding-bottom:48px}
+.hero-copy{max-width:800px;position:relative}
+h1{font-size:clamp(50px,7.4vw,104px);line-height:.98;letter-spacing:-.06em}
+.hero .lead{max-width:46ch;margin-top:30px}
+.hero .actions{margin-top:34px}
+.hero-bottom{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;margin-top:64px;flex-wrap:wrap}
+.hero-note{max-width:300px;line-height:1.9;color:var(--muted);font-family:var(--mono);font-size:12px;letter-spacing:.02em}
+.hero-note b{color:var(--ink-2);font-weight:500}
+.scroll-link{display:flex;gap:14px;align-items:center;font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.scroll-link:hover{color:var(--lime-ink)}
+
+/* ===== Esteira ===== */
+.ticker{border-block:1px solid var(--line);background:var(--lime);color:var(--on-lime);padding-block:20px;overflow:hidden}
+.ticker-track{display:flex;width:max-content;animation:marquee 40s linear infinite}
+.ticker:hover .ticker-track,.motion-paused .ticker-track{animation-play-state:paused}
+.ticker-group{display:flex;align-items:center;gap:44px;padding-right:44px;flex-shrink:0}
+.ticker span{font-size:clamp(20px,2.6vw,36px);font-weight:300;letter-spacing:-.04em;white-space:nowrap}
+.ticker span b{font-weight:800}
+.ticker i{font-style:normal;font-size:22px}
+@keyframes marquee{to{transform:translateX(-50%)}}
+
+/* ===== Frentes (3 cards) ===== */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:52px}
+.card{background:linear-gradient(160deg,var(--surface-2),var(--surface) 80%);border:1px solid var(--line);border-radius:var(--radius);padding:30px 28px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.card .mono{color:var(--lime-ink)}
+.card h3{font-size:26px;font-weight:300;margin-top:40px}
+.card h3 strong{font-weight:800}
+.card p{color:var(--muted);font-size:14.5px;line-height:1.75}
+.card .tag{margin-top:auto;padding-top:16px;border-top:1px dashed var(--line);font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--lime-ink)}
+.punch{margin-top:44px;font-size:clamp(22px,2.8vw,34px);font-weight:200;letter-spacing:-.03em;line-height:1.2;max-width:28ch}
+.punch b{font-weight:800;color:var(--lime-ink)}
+
+/* ===== Conversa ===== */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
+.panel{background:#1B1C18;border:1px solid rgba(116,48,246,.18);border-radius:var(--radius);overflow:hidden;box-shadow:0 30px 90px #0006;min-width:0}
+.panel-top{padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);font-size:12px;flex-wrap:wrap}
+.panel-identity{display:flex;align-items:center;gap:10px}
+.mini-mark{width:30px;height:30px;border-radius:8px;background:var(--lime);color:var(--on-lime);display:grid;place-items:center;font-weight:800;font-size:13px}
+.badge{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--line);border-radius:30px;padding:5px 9px;color:var(--muted)}
+.messages{padding:24px;display:flex;flex-direction:column;gap:14px}
+.msg{max-width:88%;padding:14px 16px;border-radius:13px;font-size:14px;line-height:1.6}
+.msg small{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.75;margin-bottom:6px}
+.msg small i{font-style:normal;color:var(--lime-ink)}
+.msg.in{align-self:flex-end;background:#2C2932;border-bottom-right-radius:3px}
+.msg.out{align-self:flex-start;background:#E4DFF0;color:#221C2A;border-bottom-left-radius:3px}
+.msg.out small i{color:#372455}
+.msg.esc{background:#211B27;color:var(--ink);border:1px solid rgba(116,48,246,.35)}
+.event{color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-align:center}
+.panel-bottom{padding:14px 22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.text-link{display:inline-flex;align-items:center;gap:14px;margin-top:26px;padding-bottom:8px;border-bottom:1px solid var(--line);font-size:13.5px;font-weight:500}
+.text-link:hover{color:var(--lime-ink);border-color:var(--lime-ink)}
+
+/* ===== Método (sequência real) ===== */
+.steps{margin-top:48px;border-top:1px solid var(--line)}
+.step{display:grid;grid-template-columns:72px 260px 1fr;gap:26px;padding:30px 0;border-bottom:1px solid var(--line);align-items:baseline}
+.step .n{font-family:var(--mono);font-size:13px;color:var(--lime-ink)}
+.step h3{font-size:24px;font-weight:800;letter-spacing:-.03em}
+.step p{color:var(--muted);font-size:15.5px;line-height:1.7;max-width:58ch}
+.step p b{color:var(--ink);font-weight:700}
+
+/* ===== A/B ===== */
+.compare{display:grid;grid-template-columns:1fr 180px 1fr;gap:20px;margin-top:56px;align-items:stretch}
+.compare-card{padding:32px;border-radius:var(--radius);border:1px solid var(--line);background:rgba(24,24,22,.92);min-width:0}
+.compare-card.after{border-color:rgba(116,48,246,.4);background:rgba(33,27,39,.95)}
+.compare-card .mono{color:var(--muted)}
+.compare-card.after .mono{color:var(--lime-ink)}
+.compare-card h3{margin:36px 0 24px;font-size:30px;font-weight:300}
+.compare-card h3 b{font-weight:800}
+.compare-card ul{list-style:none}
+.compare-card li{padding:13px 0;border-top:1px solid var(--line);color:var(--ink-2);font-size:14.5px;line-height:1.55;display:flex;gap:12px}
+.compare-card li::before{content:"−";color:var(--muted);font-family:var(--mono)}
+.compare-card.after li::before{content:"+";color:var(--lime-ink)}
+.compare-axis{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:var(--lime-ink);font-size:38px}
+.compare-axis small{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:center}
+
+/* ===== Aplicações ===== */
+.state{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--line-strong);border-radius:999px;padding:4px 9px;color:var(--ink-2)}
+.state.on{border-color:var(--lime-ink);color:var(--lime-ink);background:rgba(116,48,246,.1)}
+.card-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.card .app-title{font-size:28px;font-weight:800;margin-top:44px;letter-spacing:-.03em}
+.note{font-family:var(--mono);font-size:11.5px;color:var(--muted);line-height:1.7;letter-spacing:.01em}
+
+/* ===== Esboço de escopo (papel) ===== */
+.paper{background:var(--paper);color:var(--paper-ink)}
+.paper .overline{color:var(--paper-muted)}
+.paper .overline::before,.paper .overline::after{color:#3E2B62}
+.paper .lead{color:var(--paper-muted)}
+.calc{display:grid;grid-template-columns:1fr 1fr;gap:64px;margin-top:48px;align-items:start}
+.field label{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:700;margin:24px 0 10px}
+.field output{font-family:var(--mono);font-size:12px;color:#2E1B49}
+select{width:100%;appearance:none;-webkit-appearance:none;background:#F2F0F8;color:var(--paper-ink);border:1px solid rgba(27,22,32,.3);border-radius:8px;padding:12px 40px 12px 14px;font-size:15px;cursor:pointer;color-scheme:light;
+  background-image:linear-gradient(45deg,transparent 50%,#372455 50%),linear-gradient(135deg,#372455 50%,transparent 50%);background-position:calc(100% - 20px) 50%,calc(100% - 15px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+select:hover{border-color:#372455}
+.paper :focus-visible{outline-color:#2E1B49}
+input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:2px;background:rgba(27,22,32,.35);border-radius:2px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#2E1B49;border:3px solid var(--paper);box-shadow:0 0 0 1px #2E1B49;cursor:pointer}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#2E1B49;border:3px solid var(--paper);cursor:pointer}
+.sheet{background:var(--paper-2);border:1px solid rgba(27,22,32,.14);border-radius:var(--radius);padding:32px;min-width:0}
+.sheet .mono{color:#2E1B49}
+.ficha{margin-top:14px;padding-top:14px;border-top:1px solid rgba(27,22,32,.2);font-family:var(--mono);font-size:13.5px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--paper-ink)}
+.ficha b{color:#2E1B49;font-weight:500}
+.sheet .btn{width:100%;margin-top:22px;background:#1D1524;color:#E5DDF7;justify-content:space-between}
+.sheet .btn-copy{background:transparent;color:var(--paper-ink);border-color:rgba(27,22,32,.3);margin-top:10px}
+.sheet .btn-copy:hover{border-color:#2E1B49;color:#2E1B49}
+.paper .note{color:var(--paper-muted)}
+
+/* ===== Padrão de execução ===== */
+.trust{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-top:48px}
+.trust>div{background:var(--surface);padding:26px 22px;min-width:0}
+.trust h4{font-size:15.5px;font-weight:800;margin-bottom:8px;letter-spacing:-.01em}
+.trust p{font-size:13.5px;color:var(--muted);line-height:1.7}
+.trust .mark{display:block;width:10px;height:10px;border-radius:50%;background:var(--dot);margin-bottom:16px}
+
+/* ===== Quem faz ===== */
+.who{max-width:800px}
+.who .big{font-size:clamp(22px,3vw,36px);font-weight:200;line-height:1.3;letter-spacing:-.03em;margin-top:22px}
+.who .big b{font-weight:800}
+.who .big em{font-style:normal;color:var(--lime-ink)}
+.who .sig{margin-top:28px;font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+/* ===== FAQ ===== */
+.faq-grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:72px;align-items:start}
+.faq-intro{position:sticky;top:110px}
+details{border-bottom:1px solid var(--line)}
+details:first-of-type{border-top:1px solid var(--line)}
+summary{list-style:none;display:flex;align-items:center;gap:18px;padding:24px 0;font-size:16px;font-weight:700;line-height:1.4;cursor:pointer}
+summary::-webkit-details-marker{display:none}
+summary .mono{min-width:22px;color:var(--muted)}
+summary::after{content:"+";margin-left:auto;font-family:var(--mono);font-size:22px;font-weight:400;color:var(--lime-ink);transition:transform .3s}
+details[open] summary::after{transform:rotate(45deg)}
+details p{padding:0 40px 24px;color:var(--ink-2);font-size:15px;line-height:1.75;max-width:62ch}
+details p b{color:var(--ink);font-weight:700}
+
+/* ===== Fecho ===== */
+.closing{min-height:60vh;display:flex;align-items:center;border-top:1px solid var(--line)}
+.closing .section-title{font-size:clamp(44px,7vw,100px);max-width:13ch}
+.closing .lead{margin-top:24px}
+.closing .actions{margin-top:30px}
+.email{display:inline-flex;align-items:center;gap:14px;margin-top:28px;font-family:var(--mono);font-size:15px;color:var(--lime-ink);overflow-wrap:anywhere;flex-wrap:wrap}
+.email a{border-bottom:1px solid var(--lime);padding-bottom:2px}
+.copy-btn{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+.copy-btn:hover{color:var(--lime-ink);border-color:var(--lime-ink)}
+
+/* ===== Rodapé ===== */
+footer{border-top:1px solid var(--line);background:var(--bg);padding:56px 0 calc(28px + env(safe-area-inset-bottom,0px))}
+.ft{display:grid;grid-template-columns:2fr 1fr 1fr;gap:40px}
+.ft h5{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;font-weight:500}
+.ft a:not(.brand){display:block;color:var(--ink-2);font-size:14.5px;margin-bottom:9px}
+.ft a:not(.brand):hover{color:var(--lime-ink)}
+.ft p{color:var(--muted);font-size:14px;max-width:40ch;line-height:1.7}
+.legal-id{margin-top:40px;padding-top:22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;color:var(--muted);line-height:1.8}
+
+/* ===== Responsivo ===== */
+@media(max-width:1100px){
+  .compare{grid-template-columns:1fr 90px 1fr}
+  .trust{grid-template-columns:repeat(3,1fr)}
+  .two-col,.faq-grid,.calc{gap:44px}
+  .step{grid-template-columns:60px 1fr;grid-template-rows:auto auto}
+  .step p{grid-column:2}
+}
+@media(max-width:860px){
+  .menu-toggle{display:inline-block}
+  .nav{display:none;position:absolute;top:80px;left:0;right:0;flex-direction:column;align-items:stretch;padding:20px var(--gutter) 24px;gap:6px;background:#171816;border-bottom:1px solid var(--line)}
+  .nav.open{display:flex}
+  .nav a:not(.btn){padding:12px 0;font-size:16px}
+  .grid3{grid-template-columns:1fr}
+  .two-col,.faq-grid,.calc{grid-template-columns:1fr}
+  .faq-intro{position:static}
+  .compare{grid-template-columns:1fr;gap:14px}
+  .compare-axis{flex-direction:row;min-height:60px}
+  .compare-axis span{transform:rotate(90deg)}
+  .trust{grid-template-columns:1fr 1fr}
+  .ft{grid-template-columns:1fr}
+  .orb-stage{left:72%;top:42%;width:min(92vw,520px);opacity:.75}
+}
+@media(max-width:560px){
+  .section{padding-block:68px}
+  .header-inner{height:72px}
+  .nav{top:72px}
+  .brand{font-size:22px}
+  .hero{padding-top:52px}
+  h1{font-size:clamp(46px,13vw,64px)}
+  .trust{grid-template-columns:1fr}
+  .actions .btn{width:100%}
+  .sheet .btn{justify-content:space-between}
+  .msg{max-width:94%}
+  .orb-label{font-size:10px;gap:8px;padding:6px 10px}
+  .orb-label button{font-size:0;padding-left:8px}
+  .orb-label button::before{content:"⏸";font-size:12px}
+  .orb-label button[aria-pressed="true"]::before{content:"▶"}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .ticker-track{animation:none}
+  .btn,.btn:hover{transition:none;transform:none}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#conteudo">Pular para o conteúdo</a>
+
+<div class="orb-stage fallback" id="orbStage" aria-hidden="true"><canvas id="orbCanvas"></canvas></div>
+<div class="orb-label" id="orbLabel"><span>forma <i id="orbIdx">01</i> / <i id="orbName">as demandas</i></span><button type="button" id="motionBtn" aria-pressed="false">pausar movimento</button></div>
+
+<header class="header">
+  <div class="wrap header-inner">
+    <a class="brand" href="#topo" aria-label="Rebird — início">
+      
+      Rebird<span class="dotmark" aria-hidden="true"></span>
+    </a>
+    <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="nav">Menu +</button>
+    <nav class="nav" id="nav" aria-label="Navegação principal">
+      <a href="#frentes">O que fazemos</a>
+      <a href="#metodo">Método</a>
+      <a href="#aplicacoes">Aplicações</a>
+      <a href="#escopo">Esboço de escopo</a>
+      <a href="#faq">Perguntas</a>
+      <a href="#documentos">Documentos</a>
+      <a class="btn btn-primary" href="mailto:contato@rebird.ia.br?subject=Quero%20conversar%20sobre%20a%20minha%20opera%C3%A7%C3%A3o">Falar com a Rebird <span class="arrow" aria-hidden="true">↗</span></a>
+    </nav>
+  </div>
+</header>
+
+<main id="conteudo">
+<div id="topo"></div>
+
+<!-- HERO -->
+<section class="hero wrap" id="inicio" aria-labelledby="heroTitle">
+  <div class="hero-copy">
+    <p class="overline">assistentes de IA conversacional · API oficial do WhatsApp</p>
+    <h1 id="heroTitle">Menos espera.<br>Mais <strong>conversa.</strong><br>Mais <strong class="accent">avanço.</strong></h1>
+    <p class="lead">A Rebird projeta, implementa e acompanha assistentes de inteligência artificial que atendem no WhatsApp de empresas e profissionais, sobre a API oficial da Meta. O assistente informa, agenda e registra; o que não é dele, passa a uma pessoa nomeada.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="mailto:contato@rebird.ia.br?subject=Quero%20conversar%20sobre%20a%20minha%20opera%C3%A7%C3%A3o">Falar com a Rebird <span class="arrow" aria-hidden="true">↗</span></a>
+      <a class="btn btn-ghost" href="#metodo">Ver como projetamos <span class="arrow" aria-hidden="true">↓</span></a>
+    </div>
+  </div>
+  <div class="hero-bottom">
+    <p class="hero-note"><b>rebird</b>: o que volta a voar. Uma operação que se reorganiza ganha um segundo fôlego — e recupera o que estava escapando. O objeto ao lado é a sua operação: começa disperso e se organiza a cada elemento do método.</p>
+    <a href="#frentes" class="scroll-link">Continue <span aria-hidden="true">↓</span></a>
+  </div>
+</section>
+
+<!-- ESTEIRA -->
+<div class="ticker" role="region" aria-label="Princípios da Rebird">
+  <p class="sr-only">Arquitetura conversacional. API oficial da Meta. Supervisão humana por desenho. Cada conversa registrada. Papéis da LGPD no contrato.</p>
+  <div class="ticker-track" aria-hidden="true">
+    <div class="ticker-group"><span>arquitetura <b>conversacional</b></span><i>✳</i><span><b>API oficial</b> da Meta</span><i>✳</i><span>supervisão humana <b>por desenho</b></span><i>✳</i><span>cada conversa <b>registrada</b></span><i>✳</i><span>papéis da LGPD <b>no contrato</b></span><i>✳</i></div>
+    <div class="ticker-group"><span>arquitetura <b>conversacional</b></span><i>✳</i><span><b>API oficial</b> da Meta</span><i>✳</i><span>supervisão humana <b>por desenho</b></span><i>✳</i><span>cada conversa <b>registrada</b></span><i>✳</i><span>papéis da LGPD <b>no contrato</b></span><i>✳</i></div>
+  </div>
+</div>
+
+<!-- FRENTES -->
+<section class="section" id="frentes" aria-labelledby="frentesTitle">
+  <div class="wrap">
+    <p class="overline">o que a rebird faz</p>
+    <h2 class="section-title" id="frentesTitle">Três frentes. <strong>Nenhuma delas começa pelo código.</strong></h2>
+    <p class="lead">Um assistente de IA conversacional não é um widget que se liga. É um sistema com contexto, critérios de atuação, integração e supervisão. Cada uma dessas partes é trabalho de alguém; na Rebird, esse alguém tem nome.</p>
+    <div class="grid3">
+      <article class="card"><span class="mono">antes de escrever uma linha</span><h3><strong>Conceber.</strong> Diagnóstico e arquitetura.</h3><p>Leitura da operação como ela é; definição de quais interações o assistente trata, em que canal, com que linguagem e dentro de quais limites. Sai um documento de arquitetura, seu, contrate-nos ou não.</p><span class="tag">o que entregamos</span></article>
+      <article class="card"><span class="mono">a construção</span><h3><strong>Desenvolver.</strong> Implementação técnica.</h3><p>Assistente implementado sobre o WhatsApp Business Platform; integração com agenda, pagamento, CRM ou sistema próprio; registro de cada conversa; titularidade dos aplicativos no ambiente Meta em nome de quem deve ser o dono.</p><span class="tag">o que entregamos</span></article>
+      <article class="card"><span class="mono">depois de ir ao ar</span><h3><strong>Acompanhar.</strong> Supervisão e evolução.</h3><p>Revisão periódica das conversas, ajuste de comportamento e de linguagem, ampliação do escopo quando a operação muda. Quando o sistema falha, o telefone que toca é o nosso.</p><span class="tag">o que entregamos</span></article>
+    </div>
+    <p class="punch">Não é um widget genérico. Não é um projeto que termina na entrega. <b>Não é automação sem alguém respondendo por ela.</b></p>
+  </div>
+</section>
+
+<!-- CONVERSA -->
+<section class="section" id="conversa" aria-labelledby="demoTitle">
+  <div class="wrap two-col">
+    <div>
+      <p class="overline">arquitetura em ação</p>
+      <h2 class="section-title" id="demoTitle">O que nesta conversa <strong>é arquitetura.</strong></h2>
+      <p class="lead">Ao lado, uma simulação com dados fictícios. Nada aqui é "inteligência mágica": os valores e horários vêm do contexto configurado pelo cliente; a reserva é um fluxo integrado à agenda e ao pagamento; a pergunta de estudo é reconhecida como fora dos limites e passada a uma pessoa, com protocolo. A linguagem é a da casa.</p>
+      <a class="text-link" href="#metodo">Ver os cinco elementos <span aria-hidden="true">↓</span></a>
+    </div>
+    <div class="panel" aria-label="Simulação de conversa">
+      <div class="panel-top"><div class="panel-identity"><span class="mini-mark" aria-hidden="true">v.</span><span>assistente · escopo: informar, agendar, encaminhar</span></div><span class="badge">simulação</span></div>
+      <div class="messages">
+        <div class="msg in"><small>interessado</small>Oi! Quanto custa a consultoria e tem horário na terça?</div>
+        <div class="msg out"><small><i>assistente</i> · contexto configurado</small>Oi. A Consultoria custa R$ 1.480, à vista ou em até 10 vezes no cartão. Na terça tenho 09h00 e 14h00, pelo Google Meet. Quer que eu reserve um deles?</div>
+        <div class="msg in"><small>interessado</small>14h. Aproveitando: você me indica um livro de constitucional?</div>
+        <div class="msg out esc"><small><i>assistente</i> · reserva gravada · pedido encaminhado</small>Reservei terça, às 14h00, por 1 hora; segue o link de pagamento. Indicação de livro não é comigo: passei para o Bernardo, que te responde por aqui. Protocolo #0417.</div>
+        <div class="event">contexto → ação integrada → encaminhamento com protocolo</div>
+      </div>
+      <div class="panel-bottom"><span>registro #0417 · 4 mensagens · 1 encaminhamento</span><span>dados fictícios · nenhuma IA conectada a esta página</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- MÉTODO -->
+<section class="section" id="metodo" aria-labelledby="metodoTitle">
+  <div class="wrap">
+    <p class="overline">o método · de que cada assistente é feito</p>
+    <h2 class="section-title" id="metodoTitle">Cinco elementos. <strong>Nesta ordem.</strong></h2>
+    <p class="lead">A sequência importa: o contexto define as interações, as interações pedem uma linguagem, a linguagem precisa de fluxos e ferramentas, e tudo isso só vai ao ar dentro de limites escritos.</p>
+    <div class="steps">
+      <div class="step"><span class="n">01</span><h3>O contexto</h3><p>A realidade do negócio ou do profissional: o que vende ou presta, para quem, com que equipe, em que horários, com que sistemas. <b>É a única fonte do que o assistente pode dizer.</b></p></div>
+      <div class="step"><span class="n">02</span><h3>As interações</h3><p>A natureza do que chega: informar, agendar, qualificar, dar suporte, cobrar, orientar. Nem tudo é para o assistente; <b>o desenho começa por escolher o que ele trata e o que ele passa adiante.</b></p></div>
+      <div class="step"><span class="n">03</span><h3>A linguagem</h3><p>O padrão de experiência esperado: tom, forma de tratamento, vocabulário da casa, o que nunca se diz. <b>Um assistente de escritório de advocacia não fala como um de estúdio de tatuagem</b>, e nenhum dos dois fala como um robô.</p></div>
+      <div class="step"><span class="n">04</span><h3>Os fluxos e as ferramentas</h3><p>Agenda, pagamento, CRM, planilha, sistema próprio, regras de negócio, passagem para pessoas. <b>Aqui está a alavanca:</b> a integração operacional é o que transforma uma resposta em um passo dado.</p></div>
+      <div class="step"><span class="n">05</span><h3>Os limites</h3><p>O que o assistente nunca decide sozinho; cuidados com dados pessoais e sensíveis; objetivos medíveis do projeto. <b>Limites escritos antes da primeira mensagem</b> são o que separa um sistema projetado de um chatbot solto.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- A/B -->
+<section class="section" id="mudanca" aria-labelledby="compareTitle">
+  <div class="wrap">
+    <p class="overline">a diferença de percepção</p>
+    <h2 class="section-title" id="compareTitle">Resposta pré-programada <strong>ou assistente projetado.</strong></h2>
+    <p class="lead">A tecnologia de base pode ser a mesma: WhatsApp Business Platform, webhooks, modelos de linguagem. O que muda é o enquadramento. Um é um produto que se liga; o outro é um sistema desenhado para uma realidade.</p>
+    <div class="compare">
+      <article class="compare-card"><p class="mono">A / resposta pré-programada</p><h3>Um menu. <b>Para todo mundo.</b></h3><ul>
+        <li>"Digite 1 para horários, 2 para valores", o mesmo texto para qualquer cliente.</li>
+        <li>Sem contexto: não sabe quem escreve, nem por quê, nem o que já foi dito.</li>
+        <li>Sem registro útil: ninguém consegue dizer o que foi perguntado e ficou sem resposta.</li>
+        <li>Sem passagem para pessoas, ou com uma passagem que é um beco.</li>
+      </ul></article>
+      <div class="compare-axis" aria-hidden="true"><span>→</span><small>a operação, projetada</small></div>
+      <article class="compare-card after"><p class="mono">B / assistente projetado pela rebird</p><h3>Contexto, critério, <b>integração e supervisão.</b></h3><ul>
+        <li>Fala a partir do contexto da operação, com a linguagem da casa e critérios escritos.</li>
+        <li>Integrado ao que já existe: agenda, pagamento, CRM, sistema próprio.</li>
+        <li>Cada conversa registrada e exportável; a operação vê o que perguntam.</li>
+        <li>Sabe o que não é dele e encaminha a uma pessoa nomeada, com resumo e protocolo.</li>
+      </ul></article>
+    </div>
+  </div>
+</section>
+
+<!-- APLICAÇÕES -->
+<section class="section" id="aplicacoes" aria-labelledby="appsTitle">
+  <div class="wrap">
+    <p class="overline">soluções e aplicações</p>
+    <h2 class="section-title" id="appsTitle">A Rebird é a empresa. <strong>Cada aplicação tem nome, segmento e estado.</strong></h2>
+    <p class="lead">Nenhuma aplicação aparece aqui sem dizer em que ponto está. É assim que se lê o que existe e o que ainda está sendo feito.</p>
+    <div class="grid3">
+      <article class="card"><div class="card-top"><span class="mono">educação · concursos</span><span class="state on">em piloto</span></div><h3 class="app-title">Billie</h3><p>Secretário virtual do B. My Guide, consultoria de preparação para concursos públicos. Explica a Consultoria, reserva horário, envia o link de pagamento e encaminha ao consultor tudo o que não é dele. Primeiro assistente da Rebird em operação.</p><span class="tag">informar → agendar → receber → encaminhar</span></article>
+      <article class="card"><div class="card-top"><span class="mono">saúde</span><span class="state">em desenvolvimento</span></div><h3 class="app-title">Clair</h3><p>Aplicação para clínicas e consultórios: informa, agenda e encaminha o que é clínico a uma pessoa. Não avalia sintomas, não orienta tratamento, não define urgência.</p><span class="tag">informar → agendar → encaminhar</span></article>
+      <article class="card"><div class="card-top"><span class="mono">comercial · serviços</span><span class="state">sob projeto</span></div><h3 class="app-title">Sob medida</h3><p>Para operações que recebem interessados pelo WhatsApp e precisam entender, qualificar e entregar cada contato a uma pessoa com contexto; para escritórios, consultórios e estúdios que precisam de primeira resposta e organização de pedidos recorrentes.</p><span class="tag">escutar → qualificar → conectar</span></article>
+    </div>
+    <p class="note" style="margin-top:22px">"em piloto": em uso com um grupo restrito, sob acompanhamento. "em desenvolvimento": em construção, sem cliente em produção. "sob projeto": arquitetura definida caso a caso, a partir dos cinco elementos.</p>
+  </div>
+</section>
+
+<!-- ESBOÇO DE ESCOPO -->
+<section class="section paper" id="escopo" aria-labelledby="escopoTitle">
+  <div class="wrap">
+    <p class="overline">esboço de escopo</p>
+    <h2 class="section-title" id="escopoTitle">Descreva a operação em cinco escolhas. <strong>A ficha se escreve sozinha.</strong></h2>
+    <p class="lead">Não é uma calculadora de promessas: é o esboço com que a conversa começa. Tudo acontece no seu navegador; nada é enviado até você decidir enviar.</p>
+    <div class="calc">
+      <div class="field">
+        <label for="sCanal">Canal principal</label><select id="sCanal"><option>WhatsApp</option><option>WhatsApp + Instagram</option><option>WhatsApp + Messenger</option><option>WhatsApp + site</option></select>
+        <label for="sVol">Interações por dia, aproximadamente <output id="oVol" for="sVol">60</output></label><input type="range" id="sVol" min="10" max="500" step="10" value="60">
+        <label for="sTipo">Tipo predominante</label><select id="sTipo"><option>informar</option><option>agendar</option><option>qualificar interessados</option><option>dar suporte</option><option>orientar sobre pedidos e prazos</option></select>
+        <label for="sInt">Sistemas a integrar</label><select id="sInt"><option>nenhum por ora</option><option>agenda</option><option>pagamento</option><option>CRM</option><option>sistema próprio</option><option>agenda + pagamento</option></select>
+        <label for="sLim">O que fica com pessoas</label><select id="sLim"><option>tudo o que sair do escopo</option><option>decisões clínicas ou técnicas</option><option>negociação e valores</option><option>reclamações e cancelamentos</option></select>
+        <p class="note" style="margin-top:22px">o volume é ilustrativo · a ficha é montada no seu navegador e não é armazenada</p>
+      </div>
+      <div class="sheet">
+        <p class="mono">ficha de arquitetura · esboço</p>
+        <pre class="ficha" id="ficha" aria-live="polite"></pre>
+        <a class="btn" id="sendFicha" href="mailto:contato@rebird.ia.br">Enviar este esboço por e-mail <span class="arrow" aria-hidden="true">↗</span></a>
+        <button class="btn btn-copy" id="copyFicha" type="button">Copiar a ficha <span class="arrow" aria-hidden="true">⧉</span></button>
+        <p class="note" style="margin-top:18px">o botão abre o seu e-mail com a ficha já escrita; se não abrir, copie a ficha e envie para contato@rebird.ia.br. A proposta vem depois de uma conversa, por escopo, com prazo e custos de plataforma da Meta explicados por escrito.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PADRÃO DE EXECUÇÃO -->
+<section class="section" id="padrao" aria-labelledby="padraoTitle">
+  <div class="wrap">
+    <p class="overline">padrão de execução</p>
+    <h2 class="section-title" id="padraoTitle">Cinco apoios. <strong>Nenhum deles é promessa.</strong></h2>
+    <div class="trust">
+      <div><span class="mark" aria-hidden="true"></span><h4>Titularidade clara</h4><p>Os aplicativos e o portfólio no ambiente Meta ficam em nome de quem deve ser o dono, a Rebird ou o cliente, conforme o projeto. Nunca de um terceiro sem nome.</p></div>
+      <div><span class="mark" aria-hidden="true"></span><h4>API oficial da Meta</h4><p>WhatsApp Business Platform, com número registrado e nome de exibição aprovado. Sem aplicativo clonado, sem celular ligado 24 h.</p></div>
+      <div><span class="mark" aria-hidden="true"></span><h4>Papéis da LGPD no contrato</h4><p>O cliente é o controlador dos dados; a Rebird, a operadora. Finalidade, retenção e acesso escritos antes da primeira mensagem.</p></div>
+      <div><span class="mark" aria-hidden="true"></span><h4>Supervisão humana</h4><p>O assistente não decide o que é clínico, jurídico, pedagógico ou financeiro. Reconhece o que não é dele e encaminha a uma pessoa nomeada.</p></div>
+      <div><span class="mark" aria-hidden="true"></span><h4>Registro e propriedade</h4><p>Toda conversa registrada e exportável. Ao encerrar, o conhecimento configurado é do cliente. Sempre foi.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- QUEM FAZ -->
+<section class="section" id="quem" aria-labelledby="quemTitle">
+  <div class="wrap who">
+    <p class="overline">quem faz</p>
+    <h2 class="sr-only" id="quemTitle">Quem faz a Rebird</h2>
+    <p class="big">Há um ano, quem desenhou esta página <b>não sabia programar.</b> Hoje o assistente da simulação, este site e o objeto que o atravessa foram escritos por ele, <em>com a mesma tecnologia que a Rebird oferece.</em> A Rebird não pede que você acredite na IA. <b>Pede que repare no que ela acabou de fazer.</b></p>
+    <p class="lead">A Rebird é a empresa de Bernardo Dumont, advogado e arquiteto de prompts, em Sete Lagoas, Minas Gerais. Não há clientes inventados nesta página: existe um método, uma aplicação em piloto, outra em desenvolvimento e um convite.</p>
+    <p class="sig">o primeiro caso foi este site · o segundo está em piloto · o terceiro pode ser a sua operação</p>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section" id="faq" aria-labelledby="faqTitle">
+  <div class="wrap faq-grid">
+    <div class="faq-intro">
+      <p class="overline">perguntas antes de escrever</p>
+      <h2 class="section-title" id="faqTitle" style="font-size:clamp(30px,3.4vw,44px)">O que costumam perguntar <strong>antes de responder.</strong></h2>
+      <p class="lead" style="font-size:15px">Respostas inteiras, sem "fale com um consultor". O que não estiver aqui vale um e-mail.</p>
+    </div>
+    <div>
+      <details open><summary><span class="mono">01</span>O que a Rebird entrega, e o que não entrega?</summary><p>Entrega um assistente de IA conversacional projetado para a sua operação: diagnóstico, arquitetura, implementação sobre a API oficial e acompanhamento. <b>Não entrega</b> um bot pronto em minutos, nem promete que a IA vai "fazer tudo": o que ela faz é o que foi desenhado, dentro dos limites escritos.</p></details>
+      <details><summary><span class="mono">02</span>Como é feita a proposta?</summary><p>Por escopo, depois de uma conversa: canais, volume, tipo de interações, integrações e limites, os cinco elementos. Além do serviço da Rebird, existem os custos de plataforma da Meta, que dependem do tipo de mensagem: <b>conversas iniciadas pelo cliente final não têm custo de plataforma</b>; mensagens iniciadas pela empresa (lembretes, avisos) são cobradas conforme a tabela da Meta. Tudo isso vai por escrito antes de qualquer contrato.</p></details>
+      <details><summary><span class="mono">03</span>De quem são os dados e as configurações?</summary><p>Do cliente. Ele é o controlador dos dados nos termos da LGPD; a Rebird trata como operadora, para a finalidade contratada. As configurações do assistente (textos, regras, tabelas) também são do cliente. As conversas não são usadas para treinar modelos.</p></details>
+      <details><summary><span class="mono">04</span>Como o assistente trata dados pessoais?</summary><p>Recebe da Meta o número e o nome de perfil de quem escreve, e o conteúdo das mensagens; registra a conversa com protocolo para auditoria e encaminhamento. Não pede dados sensíveis; se alguém os menciona, a mensagem vai apenas para a pessoa responsável. Detalhes, prazos e direitos estão na <a href="privacidade.html" style="color:var(--lime-ink)">Política de Privacidade</a>; o pedido de exclusão está em <a href="exclusao-de-dados.html" style="color:var(--lime-ink)">Exclusão de dados</a>.</p></details>
+      <details><summary><span class="mono">05</span>Em quais canais a Rebird trabalha?</summary><p>Hoje, WhatsApp, sobre o WhatsApp Business Platform. Instagram e Messenger, que compartilham o mesmo ambiente de desenvolvimento da Meta, entram sob projeto. Sites e outros canais dependem do caso.</p></details>
+      <details><summary><span class="mono">06</span>E se o assistente não souber responder?</summary><p>Ele diz que não sabe e encaminha. É preferível a uma resposta inventada. Tudo o que o assistente pode afirmar vem do contexto configurado; o que não está lá não existe para ele.</p></details>
+      <details><summary><span class="mono">07</span>Quanto tempo leva?</summary><p>Depende dos cinco elementos, sobretudo do número estar livre para registro na API oficial e dos dados da operação estarem organizados. Com isso pronto, uma primeira versão é questão de dias; o prazo vai por escrito na proposta.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- FECHO -->
+<section class="section closing" id="contato" aria-labelledby="closingTitle">
+  <div class="wrap">
+    <p class="overline">o próximo movimento é seu</p>
+    <h2 class="section-title" id="closingTitle">Descreva a sua operação. <strong>A arquitetura começa aí.</strong></h2>
+    <p class="lead">Não pedimos que mude a empresa. Diga-nos onde o atendimento trava, e devolvemos um assistente projetado, registrando e encaminhando, com uma pessoa no comando.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="mailto:contato@rebird.ia.br?subject=Minha%20opera%C3%A7%C3%A3o">Falar com a Rebird <span class="arrow" aria-hidden="true">↗</span></a>
+      <a class="btn btn-ghost" href="#escopo">Montar o esboço de escopo <span class="arrow" aria-hidden="true">↑</span></a>
+    </div>
+    <p class="email"><a href="mailto:contato@rebird.ia.br" id="emailLink">contato@rebird.ia.br</a><button class="copy-btn" type="button" id="copyEmail">copiar</button></p>
+  </div>
+</section>
+</main>
+
+<footer id="documentos">
+  <div class="wrap">
+    <div class="ft">
+      <div>
+        <a class="brand" href="#topo" aria-label="Rebird — voltar ao início">Rebird<span class="dotmark" aria-hidden="true"></span></a>
+        <p style="margin-top:16px">Desenvolvimento de assistentes de IA conversacional para o WhatsApp de empresas e profissionais, sobre a API oficial da Meta, com uma pessoa no comando de cada decisão.</p>
+        <p style="margin-top:12px"><a href="mailto:contato@rebird.ia.br" style="display:inline;color:var(--lime-ink);font-family:var(--mono);font-size:14px">contato@rebird.ia.br</a></p>
+      </div>
+      <div><h5>Página</h5><a href="#frentes">O que fazemos</a><a href="#metodo">Método</a><a href="#aplicacoes">Aplicações</a><a href="#escopo">Esboço de escopo</a><a href="#faq">Perguntas</a></div>
+      <div><h5>Documentos</h5><a href="privacidade.html">Política de Privacidade</a><a href="termos.html">Termos de Uso</a><a href="exclusao-de-dados.html">Exclusão de dados</a></div>
+    </div>
+    <div class="legal-id">
+      <span>© 2026 Rebird Tecnologia Ltda. · CNPJ 69.813.320/0001-67 · Sete Lagoas, Minas Gerais, Brasil<br>Responsável pelos aplicativos "Billie" e "Clair" na plataforma Meta · contato: contato@rebird.ia.br</span>
+      <span>um segundo fôlego, não um substituto</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+const mobileQ = matchMedia("(max-width: 860px)");
+
+/* ---------- menu ---------- */
+const menuBtn = $("#menuToggle"), nav = $("#nav");
+function closeMenu(focus){ nav.classList.remove("open"); menuBtn.setAttribute("aria-expanded","false"); if(focus) menuBtn.focus(); }
+menuBtn.addEventListener("click", () => { const o = nav.classList.toggle("open"); menuBtn.setAttribute("aria-expanded", String(o)); });
+nav.querySelectorAll("a").forEach(a => a.addEventListener("click", () => closeMenu()));
+document.addEventListener("keydown", e => { if (e.key === "Escape" && nav.classList.contains("open")) closeMenu(true); });
+document.addEventListener("click", e => { if (!e.target.closest(".header")) closeMenu(); });
+
+/* ---------- esboço de escopo (só no navegador) ---------- */
+const sCanal=$("#sCanal"), sVol=$("#sVol"), sTipo=$("#sTipo"), sInt=$("#sInt"), sLim=$("#sLim");
+let fichaTexto = "";
+function ficha(){
+  const v = +sVol.value; $("#oVol").textContent = v;
+  const faixa = v < 60 ? "baixo" : v < 200 ? "médio" : "alto";
+  const linhas = [["canal", sCanal.value],["interações", "~" + v + "/dia (volume " + faixa + ")"],["padrão", sTipo.value],["integrações", sInt.value],["limites", sLim.value + ", ficam com pessoas"],["supervisão", "humana, por desenho · registro exportável"]];
+  $("#ficha").innerHTML = linhas.map(([k,val]) => "<b>" + k.padEnd(12," ") + "</b>" + val).join("\n");
+  fichaTexto = "Esboço de escopo — Rebird\n\n" + linhas.map(([k,val]) => k + ": " + val).join("\n") + "\n\nSobre a minha operação:\n";
+  $("#sendFicha").href = "mailto:contato@rebird.ia.br?subject=" + encodeURIComponent("Esboço de escopo") + "&body=" + encodeURIComponent(fichaTexto);
+}
+[sCanal,sVol,sTipo,sInt,sLim].forEach(el => { el.addEventListener("input", ficha); el.addEventListener("change", ficha); }); ficha();
+
+function copyText(text, btn, label){
+  const done = () => { const old = btn.innerHTML; btn.textContent = label; setTimeout(() => btn.innerHTML = old, 1800); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  else fallbackCopy(text, done);
+}
+function fallbackCopy(text, done){
+  const ta = document.createElement("textarea"); ta.value = text; ta.setAttribute("readonly",""); ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); } catch(e){}
+  document.body.removeChild(ta); done();
+}
+$("#copyFicha").addEventListener("click", () => copyText(fichaTexto, $("#copyFicha"), "Copiado"));
+$("#copyEmail").addEventListener("click", () => copyText("contato@rebird.ia.br", $("#copyEmail"), "copiado"));
+
+/* ---------- movimento: controle global ---------- */
+const motionBtn = $("#motionBtn");
+let manualPause = false, paused = reduced.matches;
+function syncMotion(){
+  paused = reduced.matches || manualPause;
+  document.body.classList.toggle("motion-paused", paused);
+  motionBtn.setAttribute("aria-pressed", String(paused));
+  motionBtn.textContent = reduced.matches ? "movimento reduzido" : paused ? "retomar movimento" : "pausar movimento";
+  motionBtn.disabled = reduced.matches;
+  positionOrb(); if (!paused) startRender(); else drawFrame(performance.now(), true);
+}
+motionBtn.addEventListener("click", () => { manualPause = !manualPause; syncMotion(); });
+reduced.addEventListener("change", syncMotion);
+
+/* ---------- A GOTA: metaballs de metal verde-limão (ray marching) ----------
+   Estados: 0 as demandas (gotas dispersas) · 1 o contexto (uma massa) · 2 o método (uma esfera lapidada)
+            3 a comparação (duas massas) · 4 as aplicações (três esferas) · 5 a operação em movimento (esfera plena) */
+const NAMES = ["as demandas","o contexto","o método","a comparação","as aplicações","a operação em movimento"];
+const STATES = [ // 5 gotas por estado: x, y, z, raio
+  [[-0.9,0.6,0.2,0.42],[0.8,0.7,-0.3,0.38],[0.9,-0.6,0.1,0.44],[-0.7,-0.8,-0.2,0.36],[0.1,0.05,0.5,0.5]],
+  [[-0.35,0.15,0,0.62],[0.3,-0.1,0,0.6],[0,0.35,0.1,0.5],[-0.1,-0.35,-0.1,0.5],[0.05,0,0.2,0.55]],
+  [[0,0,0,0.98],[0,0,0,0.9],[0,0,0,0.9],[0,0,0,0.9],[0,0,0,0.9]],
+  [[-0.72,0.05,0,0.62],[0.72,-0.05,0,0.62],[-0.72,0.05,0,0.5],[0.72,-0.05,0,0.5],[0,0,0,0.001]],
+  [[-0.95,0,0,0.5],[0,0.02,0,0.5],[0.95,0,0,0.5],[0,0.02,0,0.45],[-0.95,0,0,0.001]],
+  [[0,0,0,1.05],[0,0,0,0.9],[0,0,0,0.9],[0,0,0,0.9],[0,0,0,0.9]]
+];
+const stage = $("#orbStage"), canvas = $("#orbCanvas");
+let gl=null, prog=null, U=null, ready=false, raf=0, last=0, t=0, phase=0, path=[], curIdx=-1, scrollPending=false;
+const blobs = new Float32Array(20);
+
+const VS = `attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}`;
+const FS = `precision mediump float;
+uniform vec2 uRes;uniform float uT;uniform vec4 uB[5];uniform float uPhase;
+mat2 rot(float a){float s=sin(a),c=cos(a);return mat2(c,-s,s,c);}
+float smin(float a,float b,float k){float h=clamp(.5+.5*(b-a)/k,0.,1.);return mix(b,a,h)-k*h*(1.-h);}
+float map(vec3 p){
+  p.xz=rot(uT*.12)*p.xz; p.xy=rot(.25)*p.xy;
+  float d=1e3;
+  for(int i=0;i<5;i++){
+    vec3 c=uB[i].xyz; float r=uB[i].w;
+    c+=vec3(sin(uT*.7+float(i)*1.7),cos(uT*.55+float(i)*2.1),sin(uT*.45+float(i)))*.05;
+    d=smin(d,length(p-c)-r,.32);
+  }
+  float lat=atan(p.y,length(p.xz)), lon=atan(p.z,p.x);
+  float ribbon=sin(lat*11.+lon*2.+sin(lon*3.+uT*.15)*.6);
+  float groove=pow(.5+.5*ribbon,3.)*.028*uPhase;
+  return d+groove;
+}
+vec3 nrm(vec3 p){float e=.004;return normalize(vec3(map(p+vec3(e,0,0))-map(p-vec3(e,0,0)),map(p+vec3(0,e,0))-map(p-vec3(0,e,0)),map(p+vec3(0,0,e))-map(p-vec3(0,0,e))));}
+vec3 env(vec3 r){
+  vec3 dark=vec3(0.031,0.017,0.04), sky=vec3(0.449,0.207,0.826);
+  vec3 c=mix(dark,sky,smoothstep(-.4,.95,r.y));
+  c+=pow(max(0.,dot(r,normalize(vec3(-.6,1.,.9)))),18.)*vec3(1.011,1.016,1.117);
+  c+=pow(max(0.,1.-abs(r.x*.8+r.z*.3-.2)),46.)*vec3(0.39,0.237,0.624);
+  c+=pow(max(0.,dot(r,normalize(vec3(1.,-.3,.5)))),8.)*vec3(0.285,0.107,0.442);
+  return c;
+}
+void main(){
+  vec2 uv=(gl_FragCoord.xy*2.-uRes)/min(uRes.x,uRes.y);
+  vec3 ro=vec3(0.,0.,4.2), rd=normalize(vec3(uv*1.35,-3.));
+  float b=dot(ro,rd), disc=b*b-(dot(ro,ro)-2.3*2.3);
+  if(disc<0.){gl_FragColor=vec4(0.);return;}
+  float tt=max(0.,-b-sqrt(disc)), lim=-b+sqrt(disc);
+  vec3 p=ro; bool hit=false;
+  for(int i=0;i<72;i++){p=ro+rd*tt;float d=map(p);if(d<.003){hit=true;break;}tt+=max(d*.6,.002);if(tt>lim)break;}
+  if(!hit){gl_FragColor=vec4(0.);return;}
+  vec3 n=nrm(p), v=normalize(ro-p), l=normalize(vec3(-.6,1.,1.2)), rf=reflect(rd,n);
+  float dif=max(dot(n,l),0.), fr=pow(1.-max(dot(n,v),0.),3.), sp=pow(max(dot(n,normalize(l+v)),0.),70.);
+  vec3 base=vec3(0.404,0.207,0.646);
+  vec3 col=base*(.18+dif*.6);
+  col+=env(rf)*(.5+fr*.4);
+  col+=sp*vec3(0.792,0.756,0.994);
+  col+=fr*vec3(0.464,0.177,0.913)*.7;
+  float occ=clamp(map(p+n*.12)/.12,.45,1.); col*=occ;
+  col=col/(col+vec3(.65)); col=pow(col,vec3(.85));
+  gl_FragColor=vec4(col,1.);
+}`;
+
+function compile(type, src){ const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s); if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const m=gl.getShaderInfoLog(s); gl.deleteShader(s); throw new Error(m);} return s; }
+function initRenderer(){
+  try{
+    gl = canvas.getContext("webgl",{alpha:true,antialias:false,depth:false,stencil:false,powerPreference:"low-power"});
+    if(!gl) return;
+    const vs=compile(gl.VERTEX_SHADER,VS), fs=compile(gl.FRAGMENT_SHADER,FS);
+    prog=gl.createProgram(); gl.attachShader(prog,vs); gl.attachShader(prog,fs); gl.linkProgram(prog); gl.deleteShader(vs); gl.deleteShader(fs);
+    if(!gl.getProgramParameter(prog,gl.LINK_STATUS)) throw new Error("link");
+    gl.useProgram(prog);
+    const buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
+    const loc=gl.getAttribLocation(prog,"a"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+    U={res:gl.getUniformLocation(prog,"uRes"),t:gl.getUniformLocation(prog,"uT"),b:gl.getUniformLocation(prog,"uB"),phase:gl.getUniformLocation(prog,"uPhase")};
+    ready=true; stage.classList.remove("fallback"); resizeCanvas();
+  }catch(e){ ready=false; stage.classList.add("fallback"); }
+}
+function resizeCanvas(){
+  if(!ready) return;
+  const rect=stage.getBoundingClientRect(), dpr=Math.min(devicePixelRatio||1,1.4), cap=mobileQ.matches?560:880;
+  const size=Math.min(cap,Math.max(1,Math.round(rect.width*dpr)));
+  if(canvas.width!==size){canvas.width=canvas.height=size;}
+  gl.viewport(0,0,size,size); drawFrame(performance.now(),true);
+}
+function docTop(sel){ const el=$(sel); return el ? el.getBoundingClientRect().top+scrollY : 0; }
+function buildPath(){
+  const m=mobileQ.matches, vh=innerHeight;
+  path=[
+    {at:0, x:m?78:80, y:m?24:46, scale:m?.7:1, state:0, opacity:m?.45:.95},
+    {at:docTop("#frentes")-vh*.25, x:84, y:50, scale:.7, state:0, opacity:.22},
+    {at:docTop("#conversa")-vh*.15, x:m?78:76, y:m?22:50, scale:.55, state:1, opacity:m?.3:.35},
+    {at:docTop("#metodo")-vh*.1, x:86, y:50, scale:.55, state:2, opacity:.35},
+    {at:docTop("#mudanca")-vh*.1, x:84, y:30, scale:.55, state:3, opacity:.55},
+    {at:docTop(".compare")-vh*.5, x:50, y:m?40:62, scale:m?.7:.62, state:3, opacity:.9},
+    {at:docTop("#aplicacoes")-vh*.2, x:84, y:28, scale:.6, state:4, opacity:.5},
+    {at:docTop("#escopo")-vh*.2, x:84, y:28, scale:.5, state:4, opacity:0},
+    {at:docTop("#padrao")-vh*.3, x:80, y:50, scale:.6, state:4, opacity:0},
+    {at:docTop("#faq")-vh*.3, x:82, y:60, scale:.6, state:5, opacity:.2},
+    {at:docTop("#contato")-vh*.35, x:m?74:78, y:m?68:52, scale:m?.95:1.05, state:5, opacity:.95}
+  ];
+  path.sort((a,b)=>a.at-b.at); positionOrb();
+}
+const lerp=(a,b,t)=>a+(b-a)*t;
+function setBlobs(s){
+  const i0=Math.floor(s), i1=Math.min(i0+1,STATES.length-1), f=s-i0, k=f*f*(3-2*f);
+  for(let i=0;i<5;i++) for(let j=0;j<4;j++) blobs[i*4+j]=lerp(STATES[i0][i][j],STATES[i1][i][j],k);
+}
+function positionOrb(){
+  if(!path.length) return;
+  let pos;
+  if(paused){ pos={x:mobileQ.matches?72:76,y:mobileQ.matches?42:50,scale:1,state:2,opacity:.8}; }
+  else{
+    const sc=scrollY; let a=path[0], b=path[path.length-1];
+    for(let i=0;i<path.length-1;i++){ if(sc>=path[i].at && sc<=path[i+1].at){a=path[i];b=path[i+1];break;} }
+    if(sc>=path[path.length-1].at){a=b=path[path.length-1];}
+    const raw=a.at===b.at?1:Math.max(0,Math.min(1,(sc-a.at)/(b.at-a.at))), k=raw*raw*(3-2*raw);
+    pos={}; ["x","y","scale","state","opacity"].forEach(key=>pos[key]=lerp(a[key],b[key],k));
+  }
+  stage.style.left=pos.x+"%"; stage.style.top=pos.y+"%"; stage.style.opacity=pos.opacity;
+  stage.style.transform="translate(-50%,-50%) scale("+pos.scale+")";
+  phase=pos.state; setBlobs(phase);
+  const idx=Math.round(phase); if(idx!==curIdx){curIdx=idx; $("#orbIdx").textContent=String(idx+1).padStart(2,"0"); $("#orbName").textContent=NAMES[idx];}
+}
+function drawFrame(now, force){
+  if(!ready||document.hidden||gl.isContextLost()) return;
+  if(!force && now-last<33.3) return;
+  if(!paused && !force && last) t+=Math.min((now-last)/1000,.06);
+  last=now;
+  gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.uniform2f(U.res,canvas.width,canvas.height); gl.uniform1f(U.t,t); gl.uniform4fv(U.b,blobs); gl.uniform1f(U.phase, phase>=1.5 && phase<=2.5 ? 1 : 0);
+  gl.drawArrays(gl.TRIANGLES,0,6);
+}
+function loop(now){ raf=0; if(paused||document.hidden||!ready) return; drawFrame(now,false); raf=requestAnimationFrame(loop); }
+function startRender(){ if(raf||paused||document.hidden||!ready) return; last=0; raf=requestAnimationFrame(loop); }
+addEventListener("scroll",()=>{ if(scrollPending||paused) return; scrollPending=true; requestAnimationFrame(()=>{positionOrb();scrollPending=false;}); },{passive:true});
+let rt; addEventListener("resize",()=>{clearTimeout(rt); rt=setTimeout(()=>{buildPath();resizeCanvas();},120);});
+if("ResizeObserver" in window) new ResizeObserver(buildPath).observe($("main"));
+document.addEventListener("visibilitychange",()=>{ if(document.hidden){cancelAnimationFrame(raf);raf=0;last=0;} else {drawFrame(performance.now(),true);startRender();} });
+canvas.addEventListener("webglcontextlost",e=>{e.preventDefault();cancelAnimationFrame(raf);raf=0;ready=false;stage.classList.add("fallback");});
+canvas.addEventListener("webglcontextrestored",()=>{initRenderer();startRender();});
+buildPath(); initRenderer(); syncMotion();
+})();
+</script>
+</body>
+</html>

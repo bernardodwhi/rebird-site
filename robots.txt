@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://rebird.ia.br/sitemap.xml
